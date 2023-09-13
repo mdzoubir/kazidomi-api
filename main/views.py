@@ -11,23 +11,16 @@ from main.serializers import ProductSerializer
 
 
 # Create your views here.
-class ProductList(APIView):
+class ProductList(ListCreateAPIView):
 
-    # def get_queryset(self):
-    #     return super().get_queryset()
+    def get_queryset(self):
+        return Product.objects.select_related('category', 'vendor').all()
 
-    def get(self, request):
-        queryset = Product.objects.select_related('category', 'vendor').all()
-        serializer = ProductSerializer(
-            queryset, many=True, context={'request': request}
-        )
-        return Response(serializer.data)
+    def get_serializer_class(self):
+        return ProductSerializer
 
-    def post(self, request):
-        serializer = ProductSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_serializer_context(self):
+        return {'request': self.request}
 
 
 class ProductDetail(APIView):

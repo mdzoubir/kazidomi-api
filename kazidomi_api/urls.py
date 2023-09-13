@@ -22,5 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("__debug__/", include("debug_toolbar.urls")),
     path('products/', views.ProductList.as_view()),
-    path('products/<int:id>/', views.ProductDetail.as_view())
+    path('products/<int:pk>/', views.ProductDetail.as_view()),
+    path('categories/', views.CategoryList.as_view()),
+    path('categories/<int:pk>/', views.CategoryDetail.as_view()),
 ]

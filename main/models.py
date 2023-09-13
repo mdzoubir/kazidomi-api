@@ -21,6 +21,9 @@ class Category(models.Model):
     name = models.CharField(max_length=255)
     image = models.ImageField(upload_to='category_image')
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class Product(models.Model):
     title = models.CharField(max_length=255)
@@ -39,7 +42,7 @@ class Product(models.Model):
 class User(models.Model):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    full_name = first_name , ' ' , last_name
+    full_name = first_name, ' ', last_name
     username = models.CharField(max_length=100, unique=True)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=100)

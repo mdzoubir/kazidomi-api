@@ -38,6 +38,9 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self) -> str:
+        return self.title
+
 
 class User(models.Model):
     first_name = models.CharField(max_length=100)
@@ -99,6 +102,10 @@ class CartItem(models.Model):
         validators=[MinValueValidator(1)]
     )
 
+    class Meta:
+        # cart and product value must be unique
+        unique_together = [['cart', 'product']]
+
 
 class Order(models.Model):
     PAYMENT_STATUS_PENDING = 'P'
@@ -130,10 +137,10 @@ class OrderItem(models.Model):
 class Review(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     description = models.TextField()
-    date = models.DateField(auto_now_add=True)
+    created_at = models.DateField(auto_now_add=True)
+
 
 
 class ReviewImages(models.Model):

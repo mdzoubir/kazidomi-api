@@ -13,16 +13,33 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
-from django.urls import path, include
+from pprint import pprint
 
+from django.conf.urls.static import static
+from django.urls import path, include
+from rest_framework_nested import routers
+
+from kazidomi_api import settings
 from main import views
 
+router = routers.DefaultRouter()
+router.register('products', views.ProductViewSet, basename='products')
+router.register('categories', views.CategoryViewSet)
+router.register('carts', views.CartViewSet)
+# router.register('reviews', views.ReviewViewSet)
+# pprint(router.urls)
+
+
+products_router = routers.NestedSimpleRouter(router, 'products', lookup='product')
+products_router.register('reviews', views.ReviewViewSet, basename='product-reviews')
+
+# new we have url parameter called cart_pk
+carts_router = routers.NestedSimpleRouter(router, 'carts', lookup='cart')
+carts_router.register('items', views.CartItemViewSet, basename='cart-items')
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("__debug__/", include("debug_toolbar.urls")),
-    path('products/', views.ProductList.as_view()),
-    path('products/<int:pk>/', views.ProductDetail.as_view()),
-    path('categories/', views.CategoryList.as_view()),
-    path('categories/<int:pk>/', views.CategoryDetail.as_view()),
-]
+  path("__debug__/", include("debug_toolbar.urls")),
+  path('', include(router.urls)),
+  path('', include(products_router.urls)),
+  path('', include(carts_router.urls)),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

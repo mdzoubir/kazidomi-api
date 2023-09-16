@@ -16,6 +16,7 @@ Including another URLconf
 from pprint import pprint
 
 from django.conf.urls.static import static
+from django.contrib import admin
 from django.urls import path, include
 from rest_framework_nested import routers
 
@@ -26,7 +27,8 @@ router = routers.DefaultRouter()
 router.register('products', views.ProductViewSet, basename='products')
 router.register('categories', views.CategoryViewSet)
 router.register('carts', views.CartViewSet)
-# router.register('reviews', views.ReviewViewSet)
+router.register('customers', views.CustomerViewSet)
+router.register('orders', views.OrderViewSet, basename='orders')
 # pprint(router.urls)
 
 
@@ -38,8 +40,11 @@ carts_router = routers.NestedSimpleRouter(router, 'carts', lookup='cart')
 carts_router.register('items', views.CartItemViewSet, basename='cart-items')
 
 urlpatterns = [
-  path("__debug__/", include("debug_toolbar.urls")),
-  path('', include(router.urls)),
-  path('', include(products_router.urls)),
-  path('', include(carts_router.urls)),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+                  path('admin/', admin.site.urls),
+                  path('', include(router.urls)),
+                  path('', include(products_router.urls)),
+                  path('', include(carts_router.urls)),
+                  path('auth/', include('djoser.urls')),
+                  path('auth/', include('djoser.urls.jwt')),
+                  path("__debug__/", include("debug_toolbar.urls")),
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,6 +1,8 @@
 from uuid import uuid4
 
 from decimal import Decimal
+
+from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -14,7 +16,7 @@ class Promotion(models.Model):
     discount = models.FloatField()
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
-    users = models.ManyToManyField('User', related_name='promotions', blank=True)
+    users = models.ManyToManyField('Customer', related_name='promotions', blank=True)
 
 
 class Category(models.Model):
@@ -32,7 +34,7 @@ class Product(models.Model):
         max_digits=6,
         decimal_places=2,
         validators=[MinValueValidator(1)])
-    vendor = models.ForeignKey('User', on_delete=models.CASCADE)
+    vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     category = models.ForeignKey(
         Category, on_delete=models.PROTECT, related_name='products')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -42,23 +44,14 @@ class Product(models.Model):
         return self.title
 
 
-class User(models.Model):
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    full_name = first_name, ' ', last_name
-    username = models.CharField(max_length=100, unique=True)
-    email = models.EmailField(unique=True)
-    password = models.CharField(max_length=100)
+class Customer(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     birthday = models.DateField()
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
-    usertype = models.CharField(max_length=20, choices=[
-        ('admin', 'Admin'),
-        ('vendor', 'Vendor'),
-        ('buyer', 'Buyer'),
-    ])
+    phone = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.username
+        return self.user.username
 
 
 class Brand(models.Model):
@@ -66,7 +59,7 @@ class Brand(models.Model):
     description = models.TextField(max_length=255)
     logo = models.ImageField(upload_to='brand_image/')
     cover = models.ImageField(upload_to='brand_image/')
-    vendor = models.OneToOneField(User, on_delete=models.CASCADE)
+    vendor = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
 class Address(models.Model):
@@ -75,7 +68,7 @@ class Address(models.Model):
     city = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE)
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses")
 
 
 class Stock(models.Model):
@@ -86,7 +79,7 @@ class Stock(models.Model):
         ('out', 'Out'),
     ])
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    vendor = models.ForeignKey(User, on_delete=models.CASCADE)
+    vendor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
 class Cart(models.Model):
@@ -116,11 +109,15 @@ class Order(models.Model):
         (PAYMENT_STATUS_COMPLETE, 'Complete'),
         (PAYMENT_STATUS_FAILED, 'Failed')
     ]
-
     placed_at = models.DateTimeField(auto_now_add=True)
     payment_status = models.CharField(
         max_length=1, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_STATUS_PENDING)
-    customer = models.ForeignKey(User, on_delete=models.PROTECT)
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT)
+
+    class Meta:
+        permissions = [
+            ('cancel_order', 'Can cancel order')
+        ]
 
 
 class OrderItem(models.Model):
@@ -137,10 +134,9 @@ class OrderItem(models.Model):
 class Review(models.Model):
     product = models.ForeignKey(
         Product, on_delete=models.CASCADE, related_name='reviews')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='reviews')
     description = models.TextField()
     created_at = models.DateField(auto_now_add=True)
-
 
 
 class ReviewImages(models.Model):
@@ -151,18 +147,18 @@ class ReviewImages(models.Model):
 class Notification(models.Model):
     message = models.TextField(max_length=450)
     timestamp = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
 
 class Message(models.Model):
     content = models.CharField(max_length=450)
     timestamp = models.DateTimeField(auto_now_add=True)
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_messages')
 
 
 class Payment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(Customer, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3)  # Currency code (e.g., 'USD', 'EUR')
     payment_method = models.CharField(max_length=100)

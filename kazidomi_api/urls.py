@@ -39,11 +39,15 @@ products_router.register('reviews', views.ReviewViewSet, basename='product-revie
 carts_router = routers.NestedSimpleRouter(router, 'carts', lookup='cart')
 carts_router.register('items', views.CartItemViewSet, basename='cart-items')
 
+customer_route = routers.NestedSimpleRouter(router, 'customers', lookup='customer')
+customer_route.register('addresses', views.AddressViewSet, basename='customer-addresses')
+
 urlpatterns = [
                   path('admin/', admin.site.urls),
                   path('', include(router.urls)),
                   path('', include(products_router.urls)),
                   path('', include(carts_router.urls)),
+                  path('', include(customer_route.urls)),
                   path('auth/', include('djoser.urls')),
                   path('auth/', include('djoser.urls.jwt')),
                   path("__debug__/", include("debug_toolbar.urls")),

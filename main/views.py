@@ -1,6 +1,7 @@
 from tkinter.tix import Tree
 
 from django.db.models.aggregates import Count
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
@@ -11,12 +12,14 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, DjangoModel
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.filters import SearchFilter, OrderingFilter
+from social_core.pipeline import user
 
 from .filters import ProductFilter
-from .models import Product, Category, OrderItem, Review, Cart, CartItem, Customer, Order
+from .models import Product, Category, OrderItem, Review, Cart, CartItem, Customer, Order, Address
 from .permissions import IsAdminOrReadOnly, FullDjangoModelPermissions
 from .serializers import ProductSerializer, CategorySerializer, ReviewSerializer, CartSerializer, CartItemSerializer, \
-    AddCartItemSerializer, UpdateCartItemSerializer, CustomerSerializer, OrderSerializer, CreateOrderSerializer
+    AddCartItemSerializer, UpdateCartItemSerializer, CustomerSerializer, OrderSerializer, CreateOrderSerializer, \
+    UpdateOrderSerializer, AddressSerializer
 
 
 # Create your views here.
@@ -119,7 +122,7 @@ class CustomerViewSet(ModelViewSet):
 
         # costumer would be returning the Customer object which would be either created or fetched from the database,
         # and created would be the boolean field which would be saying if the entry was created or fetched.
-        (costumer, created) = Customer.objects.get_or_create(user_id=request.user.id)
+        costumer = Customer.objects.get(user_id=request.user.id)
 
         if request.method == 'GET':
             serializer = CustomerSerializer(costumer)
@@ -132,7 +135,14 @@ class CustomerViewSet(ModelViewSet):
 
 
 class OrderViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    # allowed http methods
+    http_method_names = ['get', 'post', 'patch', 'delete', 'head', 'options']
+
+    # allow patch, delete only for admins
+    def get_permissions(self):
+        if self.request.method in ['PATCH', 'DELETE']:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def create(self, request, *args, **kwargs):
         serializer = CreateOrderSerializer(data=request.data, context={'user_id': self.request.user.id})
@@ -144,6 +154,8 @@ class OrderViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return CreateOrderSerializer
+        elif self.request.method == 'PATCH':
+            return UpdateOrderSerializer
         return OrderSerializer
 
     def get_queryset(self):
@@ -151,3 +163,15 @@ class OrderViewSet(ModelViewSet):
         if user.is_staff:
             return Order.objects.all()
         return Order.objects.filter(customer__user_id=user.id)
+
+
+class AddressViewSet(ModelViewSet):
+    serializer_class = AddressSerializer
+
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_context(self):
+        return {'customer_id': self.kwargs['customer_pk']}
+
+    def get_queryset(self):
+        return Address.objects.filter(customer_id=self.kwargs['customer_pk'])

@@ -46,7 +46,7 @@ class Product(models.Model):
 
 class Customer(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    birthday = models.DateField()
+    birthday = models.DateField(null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
     phone = models.CharField(max_length=255)
 
@@ -67,8 +67,7 @@ class Address(models.Model):
     zip_code = models.IntegerField()
     city = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="addresses")
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="addresses")
 
 
 class Stock(models.Model):
